@@ -1,7 +1,15 @@
 const express = require("express");
 const app = express();
 const { connectToMongo } = require("./connect_mongo");
+const cors = require("cors");
 app.use(express.json());
+app.use(
+  cors({
+    origin: "http://localhost:4200",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 const port = 3000;
 
 app.get("/", (req, res) => {
