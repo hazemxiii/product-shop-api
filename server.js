@@ -19,6 +19,10 @@ app.get("/", (req, res) => {
 app.post("/create_user", async (req, res) => {
   const db = await connectToMongo();
   const collection = db.collection("users");
+  const user = await collection.findOne({ _id: req.body.id });
+  if (user) {
+    return res.json({ message: "user already exists" });
+  }
   await collection.insertOne({
     _id: req.body.id,
     name: req.body.name,
