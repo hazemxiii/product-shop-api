@@ -1,7 +1,12 @@
 {
+  "scripts": {
+    "dev": "npx nodemon server.js",
+    "start": "node server.js"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "mongodb": "^7.1.0"
+    "mongodb": "^7.1.0",
+    "nodemon": "^3.1.14"
   }
 }
