@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const { verifyToken } = require("./firebase_helper");
 const { connectToMongo } = require("./connect_mongo");
 const cors = require("cors");
 app.use(express.json());
@@ -21,7 +22,7 @@ app.post("/create_user", async (req, res) => {
   const collection = db.collection("users");
   const user = await collection.findOne({ _id: req.body.id });
   if (user) {
-    return res.json({ message: "user already exists" });
+    return res.json(user);
   }
   await collection.insertOne({
     _id: req.body.id,
@@ -49,5 +50,6 @@ app.use((err, req, res, next) => {
 
 app.listen(port, async () => {
   await connectToMongo();
+  // initFirebase();
   console.log(`Example app listening on port ${port}`);
 });
