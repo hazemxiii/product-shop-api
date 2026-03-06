@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const { verifyToken } = require("./firebase_helper");
 const { connectToMongo } = require("./connect_mongo");
 const cors = require("cors");
 // const { AutoEncryptionLoggerLevel } = require("mongodb");
@@ -104,5 +105,6 @@ app.use((err, req, res, next) => {
 
 app.listen(port, async () => {
   await connectToMongo();
+  // initFirebase();
   console.log(`Example app listening on port ${port}`);
 });
