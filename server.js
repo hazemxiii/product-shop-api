@@ -3,7 +3,25 @@ const app = express();
 const { verifyToken } = require("./firebase_helper");
 const { connectToMongo } = require("./connect_mongo");
 const cors = require("cors");
+// const { AutoEncryptionLoggerLevel } = require("mongodb");
+function isCreateUserValid(body) {
+  return body.id && body.name && body.email;
+}
+
+function isUpdateUserValid(body) {
+  const allowed = ["name", "email"];
+
+  for (const key of Object.keys(body)) {
+    if (!allowed.includes(key)) {
+      return false;
+    }
+  }
+  return true;
+}
 app.use(express.json());
+
+/*
+for deployment
 app.use(
   cors({
     origin: "http://localhost:4200",
@@ -11,18 +29,29 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+*/
+
+/* for development purposes */
+app.use(cors());
 const port = 3000;
 
 app.get("/", (req, res) => {
   res.send("Server is running");
 });
 
-app.post("/create_user", async (req, res) => {
+app.post("/user", async (req, res) => {
   const db = await connectToMongo();
   const collection = db.collection("users");
+  const isValid = !!req.body && isCreateUserValid(req.body);
+  if (!isValid) {
+    res.statusCode = 400;
+    return res.send({ message: "Enter Valid Body Data" });
+  }
+
   const user = await collection.findOne({ _id: req.body.id });
   if (user) {
-    return res.json(user);
+    res.statusCode = 400;
+    return res.json({ message: "user already exists" });
   }
   await collection.insertOne({
     _id: req.body.id,
@@ -30,14 +59,33 @@ app.post("/create_user", async (req, res) => {
     email: req.body.email,
     role: "user",
   });
-  res.json({ message: "user created" });
+  return res.json({ message: "user created" });
 });
 
-app.get("/user/:id", async (req, res) => {
+app.put("/user/:id", async (req, res) => {
   const db = await connectToMongo();
   const collection = db.collection("users");
-  const user = await collection.findOne({ _id: req.params.id });
-  res.json(user);
+
+  const isValid = isUpdateUserValid(req.body);
+  console.log({ isValid });
+
+  if (!req.body || !isUpdateUserValid(req.body)) {
+    res.statusCode = 400;
+    res.json({ message: "update data is invalid" });
+  }
+
+  const user = await collection.updateOne(
+    { _id: req.params.id },
+    { $set: req.body },
+  );
+  res.json({ message: "user updated" });
+});
+
+app.delete("/user/:id", async (req, res) => {
+  const db = await connectToMongo();
+  const collection = db.collection("users");
+  const user = await collection.deleteOne({ _id: req.params.id });
+  res.json({ message: "user deleted", user });
 });
 
 app.use((err, req, res, next) => {
