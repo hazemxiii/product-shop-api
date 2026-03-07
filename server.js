@@ -62,6 +62,13 @@ app.post("/user", async (req, res) => {
   return res.json({ message: "user created" });
 });
 
+app.get("/user/:id", async (req, res) => {
+  const db = await connectToMongo();
+  const collection = db.collection("users");
+  const user = await collection.findOne({ _id: req.params.id });
+  res.json({ message: "success", user });
+});
+
 app.put("/user/:id", async (req, res) => {
   const db = await connectToMongo();
   const collection = db.collection("users");
