@@ -1,8 +1,17 @@
+const { ObjectId } = require("mongodb");
+
 function createProductModel(db) {
   const collection = db.collection("products");
 
   async function create(productData, sellerId) {
-    const { name, price, description, image, category, stock = 0 } = productData;
+    const {
+      name,
+      price,
+      description,
+      image,
+      category,
+      stock = 0,
+    } = productData;
 
     const newProduct = {
       name,
@@ -21,7 +30,7 @@ function createProductModel(db) {
   }
 
   async function findById(id) {
-    return collection.findOne({ _id: id });
+    return await collection.findOne({ _id: new ObjectId(id) });
   }
 
   async function findAll(filters = {}) {
@@ -64,13 +73,13 @@ function createProductModel(db) {
     filteredData.updatedAt = new Date();
 
     return collection.updateOne(
-      { _id: id, sellerId },
+      { _id: new ObjectId(id), sellerId },
       { $set: filteredData },
     );
   }
 
   async function deleteById(id, sellerId) {
-    return collection.deleteOne({ _id: id, sellerId });
+    return collection.deleteOne({ _id: new ObjectId(id), sellerId: sellerId });
   }
 
   async function findBySellerId(sellerId) {

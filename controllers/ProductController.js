@@ -15,16 +15,16 @@ async function getAllProducts(req, res) {
   try {
     const db = getDb();
     const productModel = createProductModel(db);
-    
+
     const filters = {
       category: req.query.category,
       sellerId: req.query.sellerId,
       minPrice: req.query.minPrice,
-      maxPrice: req.query.maxPrice
+      maxPrice: req.query.maxPrice,
     };
 
     // Remove undefined filters
-    Object.keys(filters).forEach(key => {
+    Object.keys(filters).forEach((key) => {
       if (filters[key] === undefined) {
         delete filters[key];
       }
@@ -32,15 +32,15 @@ async function getAllProducts(req, res) {
 
     const products = await productModel.findAll(filters);
 
-    res.status(200).json({ 
-      message: "Products retrieved successfully", 
+    res.status(200).json({
+      message: "Products retrieved successfully",
       products,
-      filters
+      filters,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error retrieving products", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error retrieving products",
+      error: error.message,
     });
   }
 }
@@ -51,21 +51,22 @@ async function getProductById(req, res) {
     const db = getDb();
     const productModel = createProductModel(db);
     const product = await productModel.findById(req.params.id);
+    console.log(product);
 
     if (!product) {
-      return res.status(404).json({ 
-        message: "Product not found" 
+      return res.status(404).json({
+        message: "Product not found",
       });
     }
 
-    res.status(200).json({ 
-      message: "Product retrieved successfully", 
-      product 
+    res.status(200).json({
+      message: "Product retrieved successfully",
+      product,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error retrieving product", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error retrieving product",
+      error: error.message,
     });
   }
 }
@@ -91,41 +92,43 @@ async function createProduct(req, res) {
     }
 
     if (user.role !== "seller") {
-      return res.status(403).json({ message: "Only sellers can create products" });
+      return res
+        .status(403)
+        .json({ message: "Only sellers can create products" });
     }
 
     // Validate required fields
     const requiredFields = ["name", "price", "description", "image"];
-    const missingFields = requiredFields.filter(field => !req.body[field]);
+    const missingFields = requiredFields.filter((field) => !req.body[field]);
 
     if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        message: `Missing required fields: ${missingFields.join(", ")}` 
+      return res.status(400).json({
+        message: `Missing required fields: ${missingFields.join(", ")}`,
       });
     }
 
     const db = getDb();
     const productModel = createProductModel(db);
-    
+
     const productData = {
       name: req.body.name,
       price: parseFloat(req.body.price),
       description: req.body.description,
       image: req.body.image,
       category: req.body.category,
-      stock: parseInt(req.body.stock) || 0
+      stock: parseInt(req.body.stock) || 0,
     };
 
     const product = await productModel.create(productData, user._id);
 
-    res.status(201).json({ 
-      message: "Product created successfully", 
-      product 
+    res.status(201).json({
+      message: "Product created successfully",
+      product,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error creating product", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error creating product",
+      error: error.message,
     });
   }
 }
@@ -151,30 +154,32 @@ async function updateProduct(req, res) {
     }
 
     if (user.role !== "seller") {
-      return res.status(403).json({ message: "Only sellers can update products" });
+      return res
+        .status(403)
+        .json({ message: "Only sellers can update products" });
     }
 
     const db = getDb();
     const productModel = createProductModel(db);
-    
+
     const { id } = req.params;
     const result = await productModel.updateById(id, req.body, user._id);
 
     if (result.matchedCount === 0) {
-      return res.status(404).json({ 
-        message: "Product not found or you don't have permission to update it" 
+      return res.status(404).json({
+        message: "Product not found or you don't have permission to update it",
       });
     }
 
     const updatedProduct = await productModel.findById(id);
-    res.status(200).json({ 
-      message: "Product updated successfully", 
-      product: updatedProduct 
+    res.status(200).json({
+      message: "Product updated successfully",
+      product: updatedProduct,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error updating product", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error updating product",
+      error: error.message,
     });
   }
 }
@@ -200,29 +205,31 @@ async function deleteProduct(req, res) {
     }
 
     if (user.role !== "seller") {
-      return res.status(403).json({ message: "Only sellers can delete products" });
+      return res
+        .status(403)
+        .json({ message: "Only sellers can delete products" });
     }
 
     const db = getDb();
     const productModel = createProductModel(db);
-    
+
     const { id } = req.params;
     const result = await productModel.deleteById(id, user._id);
 
     if (result.deletedCount === 0) {
-      return res.status(404).json({ 
-        message: "Product not found or you don't have permission to delete it" 
+      return res.status(404).json({
+        message: "Product not found or you don't have permission to delete it",
       });
     }
 
-    res.status(200).json({ 
-      message: "Product deleted successfully", 
-      deletedCount: result.deletedCount 
+    res.status(200).json({
+      message: "Product deleted successfully",
+      deletedCount: result.deletedCount,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error deleting product", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error deleting product",
+      error: error.message,
     });
   }
 }
@@ -235,14 +242,14 @@ async function getProductsBySeller(req, res) {
     const { sellerId } = req.params;
     const products = await productModel.findBySellerId(sellerId);
 
-    res.status(200).json({ 
-      message: "Seller products retrieved successfully", 
-      products 
+    res.status(200).json({
+      message: "Seller products retrieved successfully",
+      products,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error retrieving seller products", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error retrieving seller products",
+      error: error.message,
     });
   }
 }
@@ -253,5 +260,5 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
-  getProductsBySeller
+  getProductsBySeller,
 };
