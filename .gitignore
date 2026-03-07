@@ -25,24 +25,6 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-
-# nyc test coverage
-.nyc_output
-
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
-
-# Bower dependency directory (https://bower.io/)
-bower_components
-
-# node-waf configuration
-.lock-wscript
-
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
 
 # Dependency directories
 node_modules/
@@ -120,7 +102,6 @@ firebase-debug.log
 firebase-debug.*.log
 
 # Private keys and sensitive data
-private.json
 *.pem
 *.key
 *.p12
@@ -129,7 +110,3 @@ private.json
 # Build outputs
 dist/
 build/
-
-# Test files
-test-results/
-coverage/
