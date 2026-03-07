@@ -1,7 +1,8 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
-const { verifyToken } = require("./firebase_helper");
-const { connectToMongo } = require("./connect_mongo");
+const { verifyToken } = require("./config/firebase_helper");
+const { connectToMongo } = require("./config/connect_mongo");
 const cors = require("cors");
 // const { AutoEncryptionLoggerLevel } = require("mongodb");
 function isCreateUserValid(body) {
