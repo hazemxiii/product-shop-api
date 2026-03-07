@@ -1,156 +1,116 @@
 require("dotenv").config();
 const express = require("express");
-const app = express();
-const { verifyToken } = require("./config/firebase_helper");
-const { connectToMongo } = require("./config/connect_mongo");
 const cors = require("cors");
-let db;
-// const { AutoEncryptionLoggerLevel } = require("mongodb");
-function isCreateUserValid(body) {
-  return (
-    body.id &&
-    body.name &&
-    body.email &&
-    (body.role === "user" || body.role === "seller")
-  );
-}
+const { connectToMongo } = require("./config/connect_mongo");
+const logger = require("./utils/logger");
 
-function isUpdateUserValid(body) {
-  const allowed = ["name", "email"];
+const userRoutes = require("./routes/userRoutes");
+const productRoutes = require("./routes/productRoutes");
 
-  for (const key of Object.keys(body)) {
-    if (!allowed.includes(key)) {
-      return false;
-    }
-  }
-  return true;
-}
+const app = express();
+const port = process.env.PORT || 3000;
+
+logger.info("Starting Product Shop API server...", { 
+  port, 
+  nodeEnv: process.env.NODE_ENV || 'development' 
+});
+
 app.use(express.json());
 
-/*
-for deployment
-app.use(
-  cors({
-    origin: "http://localhost:4200",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
-*/
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  logger.debug(`${req.method} ${req.originalUrl}`, {
+    method: req.method,
+    url: req.originalUrl,
+    headers: req.headers,
+    body: req.body
+  });
 
-/* for development purposes */
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info(`${req.method} ${req.originalUrl} - ${res.statusCode}`, {
+      method: req.method,
+      url: req.originalUrl,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`
+    });
+  });
+
+  next();
+});
+
+// const corsOptions = {
+//   origin: ["http://localhost:4200", "http://localhost:3000", "https://product-shop-api.com"],
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"],
+//   credentials: true
+// };
+
 app.use(cors());
-const port = 3000;
 
 app.get("/", (req, res) => {
-  res.send("Server is running");
-});
-
-app.post("/user", async (req, res) => {
-  const collection = db.collection("users");
-  const isValid = !!req.body && isCreateUserValid(req.body);
-  if (!isValid) {
-    res.statusCode = 400;
-    return res.send({ message: "Enter Valid Body Data" });
-  }
-
-  const user = await collection.findOne({ _id: req.body.id });
-  if (user) {
-    // res.statusCode = 400;
-    // return res.json({ message: "user already exists" });
-    return res.json({ message: "user already exists", user });
-  }
-  await collection.insertOne({
-    _id: req.body.id,
-    name: req.body.name,
-    email: req.body.email,
-    role: req.body.role,
+  logger.info("Health check endpoint accessed");
+  res.json({
+    message: "Product Shop API is running",
+    version: "1.0.0",
+    status: "healthy",
   });
-  return res.json({ message: "user created" });
 });
 
-app.get("/user/:id", async (req, res) => {
-  const user = await getUser(req.params.id);
-  res.json({ message: "success", user });
-});
+app.use("/users", userRoutes);
+app.use("/products", productRoutes);
 
-async function getUser(id) {
-  const collection = db.collection("users");
-  const user = await collection.findOne({ _id: id });
-  return user;
-}
-
-app.put("/user/:id", async (req, res) => {
-  const collection = db.collection("users");
-
-  const isValid = isUpdateUserValid(req.body);
-  console.log({ isValid });
-
-  if (!req.body || !isUpdateUserValid(req.body)) {
-    res.statusCode = 400;
-    res.json({ message: "update data is invalid" });
-  }
-
-  const user = await collection.updateOne(
-    { _id: req.params.id },
-    { $set: req.body },
-  );
-  res.json({ message: "user updated" });
-});
-
-app.delete("/user/:id", async (req, res) => {
-  const collection = db.collection("users");
-  const user = await collection.deleteOne({ _id: req.params.id });
-  res.json({ message: "user deleted", user });
-});
-
-app.put("/products", async (req, res) => {
-  const decodedUser = await verifyToken(
-    req.headers.authorization.split(" ")[1],
-  );
-  if (!decodedUser) {
-    res.statusCode = 401;
-    return res.send({ message: "Unauthorized" });
-  }
-  const user = await getUser(decodedUser.uid);
-  if (!user) {
-    res.statusCode = 404;
-    return res.send({ message: "User not found" });
-  }
-  if (user.role !== "seller") {
-    res.statusCode = 403;
-    return res.send({ message: "Forbidden" });
-  }
-  const collection = db.collection("products");
-  const required = ["name", "price", "description", "image"];
-  for (const key of required) {
-    if (!req.body[key]) {
-      res.statusCode = 400;
-      return res.send({ message: "Enter Valid Body Data" });
-    }
-  }
-  await collection.insertOne({
-    name: req.body.name,
-    price: req.body.price,
-    description: req.body.description,
-    image: req.body.image,
-    category: req.body.category,
-    stock: req.body.stock ?? 0,
-    sellerId: user._id,
-  });
-  return res.json({ message: "product created" });
-});
-
+// Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error("Unhandled error occurred", {
+    error: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.originalUrl,
+    body: req.body
+  });
+  
   res.status(err.status || 500).json({
     success: false,
     message: "Internal Server Error",
+    error: err.message,
   });
 });
 
-app.listen(port, async () => {
-  db = await connectToMongo();
-  // initFirebase();
-  console.log(`Example app listening on port ${port}`);
+// 404 handler
+app.use((req, res) => {
+  logger.warn("Route not found", {
+    method: req.method,
+    url: req.originalUrl,
+    body: req.body
+  });
+  
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+    path: req.originalUrl,
+  });
 });
+
+async function startServer() {
+  try {
+    logger.info("Connecting to MongoDB...");
+    await connectToMongo();
+    logger.success("MongoDB connected successfully");
+
+    app.listen(port, () => {
+      logger.success(`Server running on port ${port}`, {
+        port,
+        environment: process.env.NODE_ENV || 'development'
+      });
+    });
+  } catch (error) {
+    logger.error("Failed to start server", { error: error.message });
+    process.exit(1);
+  }
+}
+
+startServer();
+
+module.exports = app;
