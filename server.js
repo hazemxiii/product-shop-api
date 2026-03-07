@@ -12,9 +12,9 @@ const orderRoutes = require("./routes/orderRoutes");
 const app = express();
 const port = process.env.PORT || 3000;
 
-logger.info("Starting Product Shop API server...", { 
-  port, 
-  nodeEnv: process.env.NODE_ENV || 'development' 
+logger.info("Starting Product Shop API server...", {
+  port,
+  nodeEnv: process.env.NODE_ENV || "development",
 });
 
 app.use(express.json());
@@ -26,16 +26,16 @@ app.use((req, res, next) => {
     method: req.method,
     url: req.originalUrl,
     headers: req.headers,
-    body: req.body
+    body: req.body,
   });
 
-  res.on('finish', () => {
+  res.on("finish", () => {
     const duration = Date.now() - start;
     logger.info(`${req.method} ${req.originalUrl} - ${res.statusCode}`, {
       method: req.method,
       url: req.originalUrl,
       statusCode: res.statusCode,
-      duration: `${duration}ms`
+      duration: `${duration}ms`,
     });
   });
 
@@ -72,9 +72,9 @@ app.use((err, req, res, next) => {
     stack: err.stack,
     method: req.method,
     url: req.originalUrl,
-    body: req.body
+    body: req.body,
   });
-  
+
   res.status(err.status || 500).json({
     success: false,
     message: "Internal Server Error",
@@ -87,9 +87,9 @@ app.use((req, res) => {
   logger.warn("Route not found", {
     method: req.method,
     url: req.originalUrl,
-    body: req.body
+    body: req.body,
   });
-  
+
   res.status(404).json({
     success: false,
     message: "Route not found",
@@ -106,7 +106,7 @@ async function startServer() {
     app.listen(port, () => {
       logger.success(`Server running on port ${port}`, {
         port,
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || "development",
       });
     });
   } catch (error) {
