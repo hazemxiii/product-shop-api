@@ -60,6 +60,7 @@ app.get("/", (req, res) => {
 
 app.use("/users", userRoutes);
 app.use("/products", productRoutes);
+app.use("/categories", productRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
