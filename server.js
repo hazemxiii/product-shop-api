@@ -4,9 +4,15 @@ const app = express();
 const { verifyToken } = require("./config/firebase_helper");
 const { connectToMongo } = require("./config/connect_mongo");
 const cors = require("cors");
+let db;
 // const { AutoEncryptionLoggerLevel } = require("mongodb");
 function isCreateUserValid(body) {
-  return body.id && body.name && body.email;
+  return (
+    body.id &&
+    body.name &&
+    body.email &&
+    (body.role === "user" || body.role === "seller")
+  );
 }
 
 function isUpdateUserValid(body) {
@@ -41,7 +47,6 @@ app.get("/", (req, res) => {
 });
 
 app.post("/user", async (req, res) => {
-  const db = await connectToMongo();
   const collection = db.collection("users");
   const isValid = !!req.body && isCreateUserValid(req.body);
   if (!isValid) {
@@ -51,27 +56,31 @@ app.post("/user", async (req, res) => {
 
   const user = await collection.findOne({ _id: req.body.id });
   if (user) {
-    res.statusCode = 400;
-    return res.json({ message: "user already exists" });
+    // res.statusCode = 400;
+    // return res.json({ message: "user already exists" });
+    return res.json({ message: "user already exists", user });
   }
   await collection.insertOne({
     _id: req.body.id,
     name: req.body.name,
     email: req.body.email,
-    role: "user",
+    role: req.body.role,
   });
   return res.json({ message: "user created" });
 });
 
 app.get("/user/:id", async (req, res) => {
-  const db = await connectToMongo();
-  const collection = db.collection("users");
-  const user = await collection.findOne({ _id: req.params.id });
+  const user = await getUser(req.params.id);
   res.json({ message: "success", user });
 });
 
+async function getUser(id) {
+  const collection = db.collection("users");
+  const user = await collection.findOne({ _id: id });
+  return user;
+}
+
 app.put("/user/:id", async (req, res) => {
-  const db = await connectToMongo();
   const collection = db.collection("users");
 
   const isValid = isUpdateUserValid(req.body);
@@ -90,10 +99,46 @@ app.put("/user/:id", async (req, res) => {
 });
 
 app.delete("/user/:id", async (req, res) => {
-  const db = await connectToMongo();
   const collection = db.collection("users");
   const user = await collection.deleteOne({ _id: req.params.id });
   res.json({ message: "user deleted", user });
+});
+
+app.put("/products", async (req, res) => {
+  const decodedUser = await verifyToken(
+    req.headers.authorization.split(" ")[1],
+  );
+  if (!decodedUser) {
+    res.statusCode = 401;
+    return res.send({ message: "Unauthorized" });
+  }
+  const user = await getUser(decodedUser.uid);
+  if (!user) {
+    res.statusCode = 404;
+    return res.send({ message: "User not found" });
+  }
+  if (user.role !== "seller") {
+    res.statusCode = 403;
+    return res.send({ message: "Forbidden" });
+  }
+  const collection = db.collection("products");
+  const required = ["name", "price", "description", "image"];
+  for (const key of required) {
+    if (!req.body[key]) {
+      res.statusCode = 400;
+      return res.send({ message: "Enter Valid Body Data" });
+    }
+  }
+  await collection.insertOne({
+    name: req.body.name,
+    price: req.body.price,
+    description: req.body.description,
+    image: req.body.image,
+    category: req.body.category,
+    stock: req.body.stock ?? 0,
+    sellerId: user._id,
+  });
+  return res.json({ message: "product created" });
 });
 
 app.use((err, req, res, next) => {
@@ -105,7 +150,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(port, async () => {
-  await connectToMongo();
+  db = await connectToMongo();
   // initFirebase();
   console.log(`Example app listening on port ${port}`);
 });
