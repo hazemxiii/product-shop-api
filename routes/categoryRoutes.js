@@ -2,32 +2,33 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  getAllProducts,
-  getProductById,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  getProductsBySeller,
-} = require("../controllers/ProductController");
+  getAllCategories,
+  getCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getProductsByCategory,
+} = require("../controllers/CategoryController");
 
 const { requireAuth, requireSeller } = require("../middleware/auth");
 
-// Get all products
-router.get("/", getAllProducts);
+// Public: list all categories
+router.get("/", getAllCategories);
 
-// Get products by seller (keep public for now)
-router.get("/seller/:sellerId", getProductsBySeller);
+// Public: get single category
+router.get("/:id", getCategoryById);
 
-// Get a single product by ID
-router.get("/:id", getProductById);
+// Public: list products in a category
+router.get("/:id/products", getProductsByCategory);
 
-// Create a new product (seller only)
-router.post("/", requireAuth, requireSeller, createProduct);
+// Protected: create category (seller only)
+router.post("/", requireAuth, requireSeller, createCategory);
 
-// Update a product by ID (seller only)
-router.put("/:id", requireAuth, requireSeller, updateProduct);
+// Protected: update category (seller only)
+router.put("/:id", requireAuth, requireSeller, updateCategory);
 
-// Delete a product by ID (seller only)
-router.delete("/:id", requireAuth, requireSeller, deleteProduct);
+// Protected: delete category (seller only)
+router.delete("/:id", requireAuth, requireSeller, deleteCategory);
 
 module.exports = router;
+

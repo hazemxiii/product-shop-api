@@ -1,257 +1,177 @@
-const createProductModel = require("../models/Product");
-const createUserModel = require("../models/User");
-const { verifyToken } = require("../config/firebase_helper");
 const { getDb } = require("../config/connect_mongo");
+const createCategoryModel = require("../models/Category");
+const createProductModel = require("../models/Product");
 
-// Helper function to get user by ID
-async function getUser(id) {
-  const db = getDb();
-  const userModel = createUserModel(db);
-  return userModel.findById(id);
-}
-
-// Get all products with optional filters
-async function getAllProducts(req, res) {
+// GET /categories
+async function getAllCategories(req, res) {
   try {
     const db = getDb();
-    const productModel = createProductModel(db);
-    
-    const filters = {
-      category: req.query.category,
-      sellerId: req.query.sellerId,
-      minPrice: req.query.minPrice,
-      maxPrice: req.query.maxPrice
-    };
+    const categoryModel = createCategoryModel(db);
 
-    // Remove undefined filters
-    Object.keys(filters).forEach(key => {
-      if (filters[key] === undefined) {
-        delete filters[key];
-      }
-    });
+    const categories = await categoryModel.findAll();
 
-    const products = await productModel.findAll(filters);
-
-    res.status(200).json({ 
-      message: "Products retrieved successfully", 
-      products,
-      filters
+    res.status(200).json({
+      message: "Categories retrieved successfully",
+      categories,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error retrieving products", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error retrieving categories",
+      error: error.message,
     });
   }
 }
 
-// Get product by ID
-async function getProductById(req, res) {
+// GET /categories/:id
+async function getCategoryById(req, res) {
   try {
     const db = getDb();
-    const productModel = createProductModel(db);
-    const product = await productModel.findById(req.params.id);
+    const categoryModel = createCategoryModel(db);
+    const category = await categoryModel.findById(req.params.id);
 
-    if (!product) {
-      return res.status(404).json({ 
-        message: "Product not found" 
+    if (!category) {
+      return res.status(404).json({
+        message: "Category not found",
       });
     }
 
-    res.status(200).json({ 
-      message: "Product retrieved successfully", 
-      product 
+    res.status(200).json({
+      message: "Category retrieved successfully",
+      category,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error retrieving product", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error retrieving category",
+      error: error.message,
     });
   }
 }
 
-// Create new product (requires seller role)
-async function createProduct(req, res) {
+// POST /categories
+async function createCategory(req, res) {
   try {
-    // Verify Firebase token
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ message: "Authorization token required" });
-    }
+    const { name, description } = req.body || {};
 
-    const decodedUser = await verifyToken(token);
-    if (!decodedUser) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-
-    // Get user from database to check role
-    const user = await getUser(decodedUser.uid);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.role !== "seller") {
-      return res.status(403).json({ message: "Only sellers can create products" });
-    }
-
-    // Validate required fields
-    const requiredFields = ["name", "price", "description", "image"];
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        message: `Missing required fields: ${missingFields.join(", ")}` 
+    if (!name) {
+      return res.status(400).json({
+        message: "Category name is required",
       });
     }
 
     const db = getDb();
-    const productModel = createProductModel(db);
-    
-    const productData = {
-      name: req.body.name,
-      price: parseFloat(req.body.price),
-      description: req.body.description,
-      image: req.body.image,
-      category: req.body.category,
-      stock: parseInt(req.body.stock) || 0
-    };
+    const categoryModel = createCategoryModel(db);
 
-    const product = await productModel.create(productData, user._id);
+    const category = await categoryModel.create({ name, description });
 
-    res.status(201).json({ 
-      message: "Product created successfully", 
-      product 
+    res.status(201).json({
+      message: "Category created successfully",
+      category,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error creating product", 
-      error: error.message 
+    if (error.message === "Category already exists") {
+      return res.status(200).json({
+        message: "Category already exists",
+        category: error.category,
+      });
+    }
+
+    res.status(500).json({
+      message: "Error creating category",
+      error: error.message,
     });
   }
 }
 
-// Update product by ID (requires seller role and ownership)
-async function updateProduct(req, res) {
+// PUT /categories/:id
+async function updateCategory(req, res) {
   try {
-    // Verify Firebase token
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ message: "Authorization token required" });
-    }
-
-    const decodedUser = await verifyToken(token);
-    if (!decodedUser) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-
-    // Get user from database to check role
-    const user = await getUser(decodedUser.uid);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.role !== "seller") {
-      return res.status(403).json({ message: "Only sellers can update products" });
-    }
-
     const db = getDb();
-    const productModel = createProductModel(db);
-    
-    const { id } = req.params;
-    const result = await productModel.updateById(id, req.body, user._id);
+    const categoryModel = createCategoryModel(db);
+
+    const result = await categoryModel.updateById(req.params.id, req.body || {});
 
     if (result.matchedCount === 0) {
-      return res.status(404).json({ 
-        message: "Product not found or you don't have permission to update it" 
+      return res.status(404).json({
+        message: "Category not found",
       });
     }
 
-    const updatedProduct = await productModel.findById(id);
-    res.status(200).json({ 
-      message: "Product updated successfully", 
-      product: updatedProduct 
+    const category = await categoryModel.findById(req.params.id);
+
+    res.status(200).json({
+      message: "Category updated successfully",
+      category,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error updating product", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error updating category",
+      error: error.message,
     });
   }
 }
 
-// Delete product by ID (requires seller role and ownership)
-async function deleteProduct(req, res) {
+// DELETE /categories/:id
+async function deleteCategory(req, res) {
   try {
-    // Verify Firebase token
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ message: "Authorization token required" });
-    }
-
-    const decodedUser = await verifyToken(token);
-    if (!decodedUser) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-
-    // Get user from database to check role
-    const user = await getUser(decodedUser.uid);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.role !== "seller") {
-      return res.status(403).json({ message: "Only sellers can delete products" });
-    }
-
     const db = getDb();
-    const productModel = createProductModel(db);
-    
-    const { id } = req.params;
-    const result = await productModel.deleteById(id, user._id);
+    const categoryModel = createCategoryModel(db);
+
+    const result = await categoryModel.deleteById(req.params.id);
 
     if (result.deletedCount === 0) {
-      return res.status(404).json({ 
-        message: "Product not found or you don't have permission to delete it" 
+      return res.status(404).json({
+        message: "Category not found",
       });
     }
 
-    res.status(200).json({ 
-      message: "Product deleted successfully", 
-      deletedCount: result.deletedCount 
+    res.status(200).json({
+      message: "Category deleted successfully",
+      deletedCount: result.deletedCount,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error deleting product", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error deleting category",
+      error: error.message,
     });
   }
 }
 
-// Get products by seller ID
-async function getProductsBySeller(req, res) {
+// GET /categories/:id/products
+async function getProductsByCategory(req, res) {
   try {
     const db = getDb();
+    const categoryModel = createCategoryModel(db);
     const productModel = createProductModel(db);
-    const { sellerId } = req.params;
-    const products = await productModel.findBySellerId(sellerId);
 
-    res.status(200).json({ 
-      message: "Seller products retrieved successfully", 
-      products 
+    const category = await categoryModel.findById(req.params.id);
+
+    if (!category) {
+      return res.status(404).json({
+        message: "Category not found",
+      });
+    }
+
+    // Communicate with products using the category name
+    const products = await productModel.findAll({ category: category.name });
+
+    res.status(200).json({
+      message: "Products retrieved successfully",
+      category,
+      products,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error retrieving seller products", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error retrieving products by category",
+      error: error.message,
     });
   }
 }
 
 module.exports = {
-  getAllProducts,
-  getProductById,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  getProductsBySeller
+  getAllCategories,
+  getCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getProductsByCategory,
 };

@@ -6,6 +6,8 @@ const logger = require("./utils/logger");
 
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -60,7 +62,8 @@ app.get("/", (req, res) => {
 
 app.use("/users", userRoutes);
 app.use("/products", productRoutes);
-app.use("/categories", productRoutes);
+app.use("/categories", categoryRoutes);
+app.use("/orders", orderRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
