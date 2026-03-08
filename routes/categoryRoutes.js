@@ -10,7 +10,7 @@ const {
   getProductsByCategory,
 } = require("../controllers/CategoryController");
 
-const { requireAuth, requireSeller } = require("../middleware/auth");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
 
 // Public: list all categories
 router.get("/", getAllCategories);
@@ -21,14 +21,14 @@ router.get("/:id", getCategoryById);
 // Public: list products in a category
 router.get("/:id/products", getProductsByCategory);
 
-// Protected: create category (seller only)
-router.post("/", requireAuth, requireSeller, createCategory);
+// Protected: create category (admin only)
+router.post("/", requireAuth, requireAdmin, createCategory);
 
-// Protected: update category (seller only)
-router.put("/:id", requireAuth, requireSeller, updateCategory);
+// Protected: update category (admin only)
+router.put("/:id", requireAuth, requireAdmin, updateCategory);
 
-// Protected: delete category (seller only)
-router.delete("/:id", requireAuth, requireSeller, deleteCategory);
+// Protected: delete category (admin only)
+router.delete("/:id", requireAuth, requireAdmin, deleteCategory);
 
 module.exports = router;
 
