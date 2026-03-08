@@ -26,6 +26,31 @@ async function getOrderByUsrId(req, res) {
   }
 }
 
+// GET /orders/:usrId
+async function getOrderByUsrIdJoined(req, res) {
+  try {
+    const db = getDb();
+    const orderModel = createOrderModel(db);
+    const order = await orderModel.findByUsrIdJoined(req.params.usrId);
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Order retrieved successfully",
+      order: order[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error retrieving Order",
+      error: error.message,
+    });
+  }
+}
+
 // POST /orders
 async function createOrder(req, res) {
   try {
@@ -64,25 +89,25 @@ async function createOrder(req, res) {
 // PUT /orders/:usrId
 async function updateOrder(req, res) {
   try {
+    const { usrId, prdQtyList } = req.body || {};
     const db = getDb();
     const orderModel = createOrderModel(db);
 
-    const result = await orderModel.updateByUsrId(
-      req.params.usrId,
-      req.body || {},
-    );
+    const result = await orderModel.updateByUsrId({ usrId, prdQtyList });
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({
-        message: "Order not found",
-      });
-    }
+    console.log({ result });
 
-    const order = await orderModel.findById(req.params.id);
+    // if (result.matchedCount === 0) {
+    //   return res.status(404).json({
+    //     message: "Order not found",
+    //   });
+    // }
+
+    const order = await orderModel.findByUsrIdJoined(usrId);
 
     res.status(200).json({
       message: "Order updated successfully",
-      order,
+      order: order[0],
     });
   } catch (error) {
     res.status(500).json({
@@ -96,4 +121,5 @@ module.exports = {
   getOrderByUsrId,
   createOrder,
   updateOrder,
+  getOrderByUsrIdJoined,
 };
