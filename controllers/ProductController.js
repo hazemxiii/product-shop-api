@@ -98,7 +98,13 @@ async function createProduct(req, res) {
     }
 
     // Validate required fields
-    const requiredFields = ["name", "price", "description", "image"];
+    const requiredFields = [
+      "name",
+      "price",
+      "description",
+      "image",
+      "category",
+    ];
     const missingFields = requiredFields.filter((field) => !req.body[field]);
 
     if (missingFields.length > 0) {

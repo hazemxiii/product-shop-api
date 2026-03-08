@@ -43,6 +43,37 @@ async function requireAuth(req, res, next) {
   }
 }
 
+async function requireAdmin(req, res, next) {
+  const [scheme, token] = (req.headers.authorization || "").split(" ");
+
+  if (scheme !== "Bearer" || !token) {
+    return res
+      .status(401)
+      .json({ message: "Authorization token required (Bearer)" });
+  }
+
+  const decoded = await verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+
+  const db = getDb();
+  const userModel = createUserModel(db);
+  const user = await userModel.findById(decoded.uid);
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  if (user.role !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "Only admins can perform this action" });
+  }
+
+  next();
+}
+
 function requireSeller(req, res, next) {
   const user = req.auth?.user;
 
@@ -64,5 +95,6 @@ function requireSeller(req, res, next) {
 module.exports = {
   requireAuth,
   requireSeller,
+  requireAdmin,
 };
 

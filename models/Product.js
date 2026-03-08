@@ -3,6 +3,49 @@ const { ObjectId } = require("mongodb");
 function createProductModel(db) {
   const collection = db.collection("products");
 
+  const categoryLookupStages = [
+    {
+      $addFields: {
+        categoryObjectId: {
+          $convert: {
+            input: "$category",
+            to: "objectId",
+            onError: null,
+            onNull: null,
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "categoryObjectId",
+        foreignField: "_id",
+        as: "categoryDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$categoryDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        category: {
+          id: "$categoryDetails._id",
+          name: "$categoryDetails.name",
+        },
+      },
+    },
+    {
+      $project: {
+        categoryDetails: 0,
+        categoryObjectId: 0,
+      },
+    },
+  ];
+
   async function create(productData, sellerId) {
     const {
       name,
@@ -12,7 +55,6 @@ function createProductModel(db) {
       category,
       stock = 0,
     } = productData;
-
     const newProduct = {
       name,
       price,
@@ -30,7 +72,16 @@ function createProductModel(db) {
   }
 
   async function findById(id) {
-    return await collection.findOne({ _id: new ObjectId(id) });
+    const result = await collection
+      .aggregate([
+        {
+          $match: { _id: new ObjectId(id) },
+        },
+        ...categoryLookupStages,
+      ])
+      .toArray();
+
+    return result[0] || null;
   }
 
   async function findAll(filters = {}) {
@@ -50,7 +101,9 @@ function createProductModel(db) {
       if (filters.maxPrice) query.price.$lte = parseFloat(filters.maxPrice);
     }
 
-    return collection.find(query).toArray();
+    return collection
+      .aggregate([{ $match: query }, ...categoryLookupStages])
+      .toArray();
   }
 
   async function updateById(id, updateData, sellerId) {
@@ -83,7 +136,9 @@ function createProductModel(db) {
   }
 
   async function findBySellerId(sellerId) {
-    return collection.find({ sellerId }).toArray();
+    return collection
+      .aggregate([{ $match: { sellerId } }, ...categoryLookupStages])
+      .toArray();
   }
 
   return {
