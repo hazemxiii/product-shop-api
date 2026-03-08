@@ -7,7 +7,8 @@ const {
   createUser,
   updateUser,
   deleteUser,
-  loginUser
+  loginUser,
+  togglePuaseUser
 } = require("../controllers/UserController");
 
 
@@ -28,5 +29,8 @@ router.delete("/:id", deleteUser);
 
 // Login endpoint
 router.post("/login", loginUser);
+
+// Toggle user pause
+router.put("/pause/:id", togglePuaseUser);
 
 module.exports = router;

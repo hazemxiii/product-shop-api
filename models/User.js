@@ -2,7 +2,7 @@ function createUserModel(db) {
   const collection = db.collection("users");
 
   async function create(userData) {
-    const { id, name, email, role = "user" } = userData;
+    const { id, name, email, role = "user", isPaused = false } = userData;
 
     const existingUser = await collection.findOne({ _id: id });
     if (existingUser) {
@@ -16,6 +16,7 @@ function createUserModel(db) {
       name,
       email,
       role,
+      isPaused,
     };
 
     await collection.insertOne(newUser);
@@ -27,7 +28,7 @@ function createUserModel(db) {
   }
 
   async function updateById(id, updateData) {
-    const allowedFields = ["name", "email"];
+    const allowedFields = ["name", "email", "isPaused"];
     const filteredData = {};
 
     for (const key of Object.keys(updateData)) {

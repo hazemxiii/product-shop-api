@@ -1,14 +1,25 @@
 const createUserModel = require("../models/User");
 const { getDb } = require("../config/connect_mongo");
 const logger = require("../utils/logger");
+const { verifyToken } = require("../config/firebase_helper");
 
 // Get all users
 async function getUsers(req, res) {
   try {
     logger.info("Getting all users", { query: req.query });
-    
+
+    const [_, token] = req.headers.authorization.split(" ");
+    const decoded = await verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
     const db = getDb();
     const userModel = createUserModel(db);
+    const user = await userModel.findById(decoded.uid);
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Only admins can perform this action" });
+    }
+    
     const users = await userModel.findAll();
     
     logger.success("Users retrieved successfully", { count: users.length });
@@ -20,6 +31,50 @@ async function getUsers(req, res) {
     logger.error("Error retrieving users", { error: error.message });
     res.status(500).json({ 
       message: "Error retrieving users", 
+      error: error.message 
+    });
+  }
+}
+
+async function togglePuaseUser(req,res){
+  try{
+    const { id } = req.params;
+    logger.info("Toggling user pause", { id });
+    const [_, token] = req.headers.authorization.split(" ");
+    const decoded = await verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    const db = getDb();
+    const userModel = createUserModel(db);
+    const admin = await userModel.findById(decoded.uid);
+    if (admin.role !== "admin") {
+      return res.status(403).json({ message: "Only admins can perform this action" });
+    }
+    
+    const user = await userModel.findById(id);
+
+
+    if (!user) {
+      logger.warn("User not found", { id });
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
+
+    const updatedUser = await userModel.updateById(id, { isPaused: req.body.isPaused });
+    logger.success("User paused successfully", { id, isPaused: req.body.isPaused });
+    res.status(200).json({ 
+      message: "User paused successfully", 
+      user: updatedUser 
+    });
+  }catch(error){
+    logger.error("Error pausing user", { 
+      error: error.message, 
+      userId: req.params.id 
+    });
+    res.status(500).json({ 
+      message: "Error pausing user", 
       error: error.message 
     });
   }
@@ -253,5 +308,6 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
-  loginUser
+  loginUser,
+  togglePuaseUser
 };
