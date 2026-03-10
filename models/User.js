@@ -28,7 +28,7 @@ function createUserModel(db) {
   }
 
   async function updateById(id, updateData) {
-    const allowedFields = ["name", "email", "isPaused"];
+    const allowedFields = ["name", "email", "isPaused", "address"];
     const filteredData = {};
 
     for (const key of Object.keys(updateData)) {
