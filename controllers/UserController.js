@@ -192,7 +192,7 @@ async function updateUser(req, res) {
     const userModel = createUserModel(db);
 
     // Validation
-    const allowedFields = ["name", "email"];
+    const allowedFields = ["name", "email", "address"];
     const invalidFields = Object.keys(updateData).filter(
       (field) => !allowedFields.includes(field),
     );
