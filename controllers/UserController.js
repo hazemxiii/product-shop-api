@@ -235,6 +235,117 @@ async function updateUser(req, res) {
   }
 }
 
+async function getFavorites(req, res) {
+  try {
+    const id = req.auth.user._id;
+    logger.info("Getting user favorites", { id });
+
+    const db = getDb();
+    const userModel = createUserModel(db);
+    const favorites = await userModel.getFavorites(id);
+
+    if (!favorites) {
+      logger.warn("User not found for getting favorites", { id });
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    logger.success("User favorites retrieved successfully", {
+      id,
+      favorites: favorites[0].favouriteProducts,
+    });
+    res.status(200).json({
+      message: "User favorites retrieved successfully",
+      favorites: favorites[0].favouriteProducts,
+    });
+  } catch (error) {
+    logger.error("Error getting user favorites", {
+      error: error.message,
+      userId: req.auth.user._id,
+    });
+    res.status(500).json({
+      message: "Error getting user favorites",
+      error: error.message,
+    });
+  }
+}
+
+async function addToFavorites(req, res) {
+  try {
+    const id = req.auth.user._id;
+    const productId = req.params.id;
+    logger.info("Adding to favorites", { id, productId });
+
+    const db = getDb();
+    const userModel = createUserModel(db);
+    const result = await userModel.addToFavorites(id, productId);
+
+    if (result.matchedCount === 0) {
+      logger.warn("User not found for adding to favorites", { id });
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const updatedUser = await userModel.findById(id);
+    logger.success("User added to favorites successfully", { id, productId });
+    res.status(200).json({
+      message: "User added to favorites successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    logger.error("Error adding to favorites", {
+      error: error.message,
+      userId: req.auth.user._id,
+      productId: req.params.id,
+    });
+    res.status(500).json({
+      message: "Error adding to favorites",
+      error: error.message,
+    });
+  }
+}
+
+async function removeFromFavorites(req, res) {
+  try {
+    const id = req.auth.user._id;
+    const productId = req.params.id;
+    logger.info("Removing from favorites", { id, productId });
+
+    const db = getDb();
+    const userModel = createUserModel(db);
+    const result = await userModel.removeFromFavorites(id, productId);
+
+    if (result.matchedCount === 0) {
+      logger.warn("User not found for removing from favorites", { id });
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const updatedUser = await userModel.findById(id);
+    logger.success("User removed from favorites successfully", {
+      id,
+      productId,
+    });
+    res.status(200).json({
+      message: "User removed from favorites successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    logger.error("Error removing from favorites", {
+      error: error.message,
+      userId: req.auth.user._id,
+      productId: req.params.id,
+    });
+    res.status(500).json({
+      message: "Error removing from favorites",
+      error: error.message,
+    });
+  }
+}
+
 // Delete user
 async function deleteUser(req, res) {
   try {
@@ -330,4 +441,7 @@ module.exports = {
   deleteUser,
   loginUser,
   togglePuaseUser,
+  addToFavorites,
+  removeFromFavorites,
+  getFavorites,
 };

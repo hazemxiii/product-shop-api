@@ -2,7 +2,14 @@ function createUserModel(db) {
   const collection = db.collection("users");
 
   async function create(userData) {
-    const { id, name, email, role = "user", isPaused = false } = userData;
+    const {
+      id,
+      name,
+      email,
+      role = "user",
+      isPaused = false,
+      favorites = [],
+    } = userData;
 
     const existingUser = await collection.findOne({ _id: id });
     if (existingUser) {
@@ -17,6 +24,7 @@ function createUserModel(db) {
       email,
       role,
       isPaused,
+      favorites,
     };
 
     await collection.insertOne(newUser);
@@ -40,6 +48,48 @@ function createUserModel(db) {
     return collection.updateOne({ _id: id }, { $set: filteredData });
   }
 
+  async function getFavorites(id) {
+    return collection
+      .aggregate([
+        { $match: { _id: id } },
+        {
+          $addFields: {
+            favoritesIds: {
+              $map: {
+                input: "$favorites",
+                as: "fav",
+                in: { $toObjectId: "$$fav" },
+              },
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "products",
+            localField: "favoritesIds",
+            foreignField: "_id",
+            as: "favouriteProducts",
+          },
+        },
+        { $project: { favouriteProducts: 1, _id: 0 } },
+      ])
+      .toArray();
+  }
+
+  async function addToFavorites(id, productId) {
+    return collection.updateOne(
+      { _id: id },
+      { $addToSet: { favorites: productId } },
+    );
+  }
+
+  async function removeFromFavorites(id, productId) {
+    return collection.updateOne(
+      { _id: id },
+      { $pull: { favorites: productId } },
+    );
+  }
+
   async function deleteById(id) {
     return collection.deleteOne({ _id: id });
   }
@@ -52,6 +102,9 @@ function createUserModel(db) {
     create,
     findById,
     updateById,
+    addToFavorites,
+    removeFromFavorites,
+    getFavorites,
     deleteById,
     findAll,
   };
