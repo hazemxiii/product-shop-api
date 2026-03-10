@@ -17,27 +17,29 @@ async function getUsers(req, res) {
     const userModel = createUserModel(db);
     const user = await userModel.findById(decoded.uid);
     if (user.role !== "admin") {
-      return res.status(403).json({ message: "Only admins can perform this action" });
+      return res
+        .status(403)
+        .json({ message: "Only admins can perform this action" });
     }
-    
+
     const users = await userModel.findAll();
-    
+
     logger.success("Users retrieved successfully", { count: users.length });
-    res.status(200).json({ 
-      message: "Users retrieved successfully", 
-      users 
+    res.status(200).json({
+      message: "Users retrieved successfully",
+      users,
     });
   } catch (error) {
     logger.error("Error retrieving users", { error: error.message });
-    res.status(500).json({ 
-      message: "Error retrieving users", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error retrieving users",
+      error: error.message,
     });
   }
 }
 
-async function togglePuaseUser(req,res){
-  try{
+async function togglePuaseUser(req, res) {
+  try {
     const { id } = req.params;
     logger.info("Toggling user pause", { id });
     const [_, token] = req.headers.authorization.split(" ");
@@ -49,33 +51,39 @@ async function togglePuaseUser(req,res){
     const userModel = createUserModel(db);
     const admin = await userModel.findById(decoded.uid);
     if (admin.role !== "admin") {
-      return res.status(403).json({ message: "Only admins can perform this action" });
+      return res
+        .status(403)
+        .json({ message: "Only admins can perform this action" });
     }
-    
-    const user = await userModel.findById(id);
 
+    const user = await userModel.findById(id);
 
     if (!user) {
       logger.warn("User not found", { id });
-      return res.status(404).json({ 
-        message: "User not found" 
+      return res.status(404).json({
+        message: "User not found",
       });
     }
 
-    const updatedUser = await userModel.updateById(id, { isPaused: req.body.isPaused });
-    logger.success("User paused successfully", { id, isPaused: req.body.isPaused });
-    res.status(200).json({ 
-      message: "User paused successfully", 
-      user: updatedUser 
+    const updatedUser = await userModel.updateById(id, {
+      isPaused: req.body.isPaused,
     });
-  }catch(error){
-    logger.error("Error pausing user", { 
-      error: error.message, 
-      userId: req.params.id 
+    logger.success("User paused successfully", {
+      id,
+      isPaused: req.body.isPaused,
     });
-    res.status(500).json({ 
-      message: "Error pausing user", 
-      error: error.message 
+    res.status(200).json({
+      message: "User paused successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    logger.error("Error pausing user", {
+      error: error.message,
+      userId: req.params.id,
+    });
+    res.status(500).json({
+      message: "Error pausing user",
+      error: error.message,
     });
   }
 }
@@ -85,31 +93,31 @@ async function getUserById(req, res) {
   try {
     const { id } = req.params;
     logger.info("Getting user by ID", { id });
-    
+
     const db = getDb();
     const userModel = createUserModel(db);
     const user = await userModel.findById(id);
 
     if (!user) {
       logger.warn("User not found", { id });
-      return res.status(404).json({ 
-        message: "User not found" 
+      return res.status(404).json({
+        message: "User not found",
       });
     }
 
     logger.success("User retrieved successfully", { id, email: user.email });
-    res.status(200).json({ 
-      message: "User retrieved successfully", 
-      user 
+    res.status(200).json({
+      message: "User retrieved successfully",
+      user,
     });
   } catch (error) {
-    logger.error("Error retrieving user", { 
-      error: error.message, 
-      userId: req.params.id 
+    logger.error("Error retrieving user", {
+      error: error.message,
+      userId: req.params.id,
     });
-    res.status(500).json({ 
-      message: "Error retrieving user", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error retrieving user",
+      error: error.message,
     });
   }
 }
@@ -122,16 +130,20 @@ async function createUser(req, res) {
 
     // Validation
     if (!id || !name || !email) {
-      logger.warn("Missing required fields for user creation", { id, name, email });
-      return res.status(400).json({ 
-        message: "Missing required fields: id, name, email" 
+      logger.warn("Missing required fields for user creation", {
+        id,
+        name,
+        email,
+      });
+      return res.status(400).json({
+        message: "Missing required fields: id, name, email",
       });
     }
 
     if (role && !["user", "seller"].includes(role)) {
       logger.warn("Invalid role provided", { role });
-      return res.status(400).json({ 
-        message: "Invalid role. Must be 'user' or 'seller'" 
+      return res.status(400).json({
+        message: "Invalid role. Must be 'user' or 'seller'",
       });
     }
 
@@ -141,16 +153,16 @@ async function createUser(req, res) {
     const user = await userModel.create(userData);
 
     logger.success("User created successfully", { id, email, role });
-    res.status(201).json({ 
-      message: "User created successfully", 
-      user 
+    res.status(201).json({
+      message: "User created successfully",
+      user,
     });
   } catch (error) {
     if (error.message === "User already exists") {
       // Idempotent create: if the user already exists, treat it as success
-      logger.info("User already exists, treating as success", { 
-        userId: req.body.id, 
-        email: req.body.email 
+      logger.info("User already exists, treating as success", {
+        userId: req.body.id,
+        email: req.body.email,
       });
       return res.status(200).json({
         message: "User already exists",
@@ -158,13 +170,13 @@ async function createUser(req, res) {
       });
     }
 
-    logger.error("Error creating user", { 
-      error: error.message, 
-      userData: { id: req.body.id, email: req.body.email }
+    logger.error("Error creating user", {
+      error: error.message,
+      userData: { id: req.body.id, email: req.body.email },
     });
-    res.status(500).json({ 
-      message: "Error creating user", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error creating user",
+      error: error.message,
     });
   }
 }
@@ -178,17 +190,17 @@ async function updateUser(req, res) {
 
     const db = getDb();
     const userModel = createUserModel(db);
-    
+
     // Validation
     const allowedFields = ["name", "email"];
     const invalidFields = Object.keys(updateData).filter(
-      field => !allowedFields.includes(field)
+      (field) => !allowedFields.includes(field),
     );
 
     if (invalidFields.length > 0) {
       logger.warn("Invalid fields for user update", { id, invalidFields });
-      return res.status(400).json({ 
-        message: `Invalid fields: ${invalidFields.join(", ")}` 
+      return res.status(400).json({
+        message: `Invalid fields: ${invalidFields.join(", ")}`,
       });
     }
 
@@ -196,26 +208,140 @@ async function updateUser(req, res) {
 
     if (result.matchedCount === 0) {
       logger.warn("User not found for update", { id });
-      return res.status(404).json({ 
-        message: "User not found" 
+      return res.status(404).json({
+        message: "User not found",
       });
     }
 
     const updatedUser = await userModel.findById(id);
-    logger.success("User updated successfully", { id, updatedFields: Object.keys(updateData) });
-    res.status(200).json({ 
-      message: "User updated successfully", 
-      user: updatedUser 
+    logger.success("User updated successfully", {
+      id,
+      updatedFields: Object.keys(updateData),
+    });
+    res.status(200).json({
+      message: "User updated successfully",
+      user: updatedUser,
     });
   } catch (error) {
-    logger.error("Error updating user", { 
-      error: error.message, 
+    logger.error("Error updating user", {
+      error: error.message,
       userId: req.params.id,
-      updateData: req.body
+      updateData: req.body,
     });
-    res.status(500).json({ 
-      message: "Error updating user", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error updating user",
+      error: error.message,
+    });
+  }
+}
+
+async function getFavorites(req, res) {
+  try {
+    const id = req.auth.user._id;
+    logger.info("Getting user favorites", { id });
+
+    const db = getDb();
+    const userModel = createUserModel(db);
+    const favorites = await userModel.getFavorites(id);
+
+    if (!favorites) {
+      logger.warn("User not found for getting favorites", { id });
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    logger.success("User favorites retrieved successfully", {
+      id,
+      favorites: favorites[0].favouriteProducts,
+    });
+    res.status(200).json({
+      message: "User favorites retrieved successfully",
+      favorites: favorites[0].favouriteProducts,
+    });
+  } catch (error) {
+    logger.error("Error getting user favorites", {
+      error: error.message,
+      userId: req.auth.user._id,
+    });
+    res.status(500).json({
+      message: "Error getting user favorites",
+      error: error.message,
+    });
+  }
+}
+
+async function addToFavorites(req, res) {
+  try {
+    const id = req.auth.user._id;
+    const productId = req.params.id;
+    logger.info("Adding to favorites", { id, productId });
+
+    const db = getDb();
+    const userModel = createUserModel(db);
+    const result = await userModel.addToFavorites(id, productId);
+
+    if (result.matchedCount === 0) {
+      logger.warn("User not found for adding to favorites", { id });
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const updatedUser = await userModel.findById(id);
+    logger.success("User added to favorites successfully", { id, productId });
+    res.status(200).json({
+      message: "User added to favorites successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    logger.error("Error adding to favorites", {
+      error: error.message,
+      userId: req.auth.user._id,
+      productId: req.params.id,
+    });
+    res.status(500).json({
+      message: "Error adding to favorites",
+      error: error.message,
+    });
+  }
+}
+
+async function removeFromFavorites(req, res) {
+  try {
+    const id = req.auth.user._id;
+    const productId = req.params.id;
+    logger.info("Removing from favorites", { id, productId });
+
+    const db = getDb();
+    const userModel = createUserModel(db);
+    const result = await userModel.removeFromFavorites(id, productId);
+
+    if (result.matchedCount === 0) {
+      logger.warn("User not found for removing from favorites", { id });
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const updatedUser = await userModel.findById(id);
+    logger.success("User removed from favorites successfully", {
+      id,
+      productId,
+    });
+    res.status(200).json({
+      message: "User removed from favorites successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    logger.error("Error removing from favorites", {
+      error: error.message,
+      userId: req.auth.user._id,
+      productId: req.params.id,
+    });
+    res.status(500).json({
+      message: "Error removing from favorites",
+      error: error.message,
     });
   }
 }
@@ -225,31 +351,31 @@ async function deleteUser(req, res) {
   try {
     const { id } = req.params;
     logger.info("Deleting user", { id });
-    
+
     const db = getDb();
     const userModel = createUserModel(db);
     const result = await userModel.deleteById(id);
 
     if (result.deletedCount === 0) {
       logger.warn("User not found for deletion", { id });
-      return res.status(404).json({ 
-        message: "User not found" 
+      return res.status(404).json({
+        message: "User not found",
       });
     }
 
     logger.success("User deleted successfully", { id });
-    res.status(200).json({ 
-      message: "User deleted successfully", 
-      deletedCount: result.deletedCount 
+    res.status(200).json({
+      message: "User deleted successfully",
+      deletedCount: result.deletedCount,
     });
   } catch (error) {
-    logger.error("Error deleting user", { 
-      error: error.message, 
-      userId: req.params.id 
+    logger.error("Error deleting user", {
+      error: error.message,
+      userId: req.params.id,
     });
-    res.status(500).json({ 
-      message: "Error deleting user", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error deleting user",
+      error: error.message,
     });
   }
 }
@@ -259,11 +385,11 @@ async function loginUser(req, res) {
   try {
     const { email, password } = req.body;
     logger.info("User login attempt", { email });
-    
+
     if (!email || !password) {
       logger.warn("Missing credentials for login", { email });
-      return res.status(400).json({ 
-        message: "Email and password are required" 
+      return res.status(400).json({
+        message: "Email and password are required",
       });
     }
 
@@ -271,33 +397,38 @@ async function loginUser(req, res) {
     const db = getDb();
     const userModel = createUserModel(db);
     const users = await userModel.findAll();
-    const user = users.find(u => u.email === email);
+    const user = users.find((u) => u.email === email);
 
     if (!user) {
       logger.warn("Login failed - user not found", { email });
-      return res.status(404).json({ 
-        message: "User not found" 
+      return res.status(404).json({
+        message: "User not found",
       });
     }
 
-    logger.success("User login successful", { 
-      userId: user._id, 
-      email, 
-      role: user.role 
+    logger.success("User login successful", {
+      userId: user._id,
+      email,
+      role: user.role,
     });
-    
-    res.status(200).json({ 
-      message: "Login successful", 
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+
+    res.status(200).json({
+      message: "Login successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
-    logger.error("Error during login", { 
-      error: error.message, 
-      email: req.body.email 
+    logger.error("Error during login", {
+      error: error.message,
+      email: req.body.email,
     });
-    res.status(500).json({ 
-      message: "Error during login", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error during login",
+      error: error.message,
     });
   }
 }
@@ -309,5 +440,8 @@ module.exports = {
   updateUser,
   deleteUser,
   loginUser,
-  togglePuaseUser
+  togglePuaseUser,
+  addToFavorites,
+  removeFromFavorites,
+  getFavorites,
 };
