@@ -31,7 +31,12 @@ async function getOrderByUsrIdJoined(req, res) {
   try {
     const db = getDb();
     const orderModel = createOrderModel(db);
-    const order = await orderModel.findByUsrIdJoined(req.params.usrId);
+    const orders = await orderModel.findByUsrIdJoined(req.params.usrId);
+    const order = orders[0]
+      ? orders[0]
+      : await orderModel.findByUsrId(req.params.usrId);
+
+    console.log({ order });
 
     if (!order) {
       return res.status(404).json({
@@ -41,7 +46,7 @@ async function getOrderByUsrIdJoined(req, res) {
 
     res.status(200).json({
       message: "Order retrieved successfully",
-      order: order[0],
+      order,
     });
   } catch (error) {
     res.status(500).json({
