@@ -115,7 +115,6 @@ function createProductModel(db) {
       "price",
       "description",
       "image",
-      "rating",
       "category",
       "stock",
     ];

@@ -197,12 +197,18 @@ async function updateUser(req, res) {
       (field) => !allowedFields.includes(field),
     );
 
-    if (invalidFields.length > 0) {
-      logger.warn("Invalid fields for user update", { id, invalidFields });
-      return res.status(400).json({
-        message: `Invalid fields: ${invalidFields.join(", ")}`,
-      });
-    }
+    Object.keys(updateData).forEach((key) => {
+      if (!allowedFields.includes(key)) {
+        delete updateData[key];
+      }
+    });
+
+    // if (invalidFields.length > 0) {
+    //   logger.warn("Invalid fields for user update", { id, invalidFields });
+    //   return res.status(400).json({
+    //     message: `Invalid fields: ${invalidFields.join(", ")}`,
+    //   });
+    // }
 
     const result = await userModel.updateById(id, updateData);
 
