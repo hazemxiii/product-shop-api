@@ -8,9 +8,12 @@ const {
   updateUser,
   deleteUser,
   loginUser,
-  togglePuaseUser
+  togglePuaseUser,
+  addToFavorites,
+  removeFromFavorites,
+  getFavorites,
 } = require("../controllers/UserController");
-
+const { requireAuth } = require("../middleware/auth");
 
 // Get all users
 router.get("/", getUsers);
@@ -32,5 +35,14 @@ router.post("/login", loginUser);
 
 // Toggle user pause
 router.put("/pause/:id", togglePuaseUser);
+
+// Get user favorites
+router.get("/products/favorites", requireAuth, getFavorites);
+
+// Add to favorites
+router.put("/favorites/:id", requireAuth, addToFavorites);
+
+// Remove from favorites
+router.delete("/favorites/:id", requireAuth, removeFromFavorites);
 
 module.exports = router;
