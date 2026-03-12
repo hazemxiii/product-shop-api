@@ -1,6 +1,7 @@
 const createReviewModel = require("../models/Review");
 const { verifyToken } = require("../config/firebase_helper");
 const { getDb } = require("../config/connect_mongo");
+const createProductModel = require("../models/Product");
 
 async function getReviewsByProduct(req, res) {
   try {
@@ -80,7 +81,14 @@ async function createReview(req, res) {
       userId: decodedUser.uid,
     };
 
+    const productModel = createProductModel(db);
+
     if (oldReview) {
+      await productModel.updateRating(
+        req.body.productId,
+        reviewData.rating,
+        oldReview.rating,
+      );
       const result = await reviewModel.updateById(
         oldReview._id,
         decodedUser.uid,
@@ -100,9 +108,8 @@ async function createReview(req, res) {
         review: updatedReview,
       });
     }
-
+    await productModel.updateRating(req.body.productId, reviewData.rating);
     const review = await reviewModel.create(reviewData);
-
     res.status(200).json({
       message: "Review created successfully",
       review,
