@@ -73,22 +73,24 @@ async function confirmPayment(req, res) {
     const payment = await paymentModel.confirmOrderPaypal(req.body);
 
     if (status === "done" && payment) {
-      const orders = await orderModel.findByUsrIdJoined(payment.userId);
-      const order = orders[0];
-      console.log({ order });
-      if (order.prdQtyList) {
-        for (const prdQty of order.prdQtyList) {
-          console.log({ payment }, prdQty.prdId, {
-            stock: prdQty.productDetails.stock - prdQty.quantity,
-          });
-          const updateResult = await productModel.updateById(prdQty.prdId, {
-            stock: prdQty.productDetails.stock - prdQty.quantity,
-          });
-          console.log({ updateResult });
+      if (payment.productList) {
+        for (const prdQty of payment.productList) {
+          const product = await productModel.findById(prdQty.prdId);
+          if (product && product.stock !== undefined) {
+            const newStock = product.stock - prdQty.quantity;
+            const updateResult = await productModel.updateById(
+              prdQty.prdId,
+              { stock: newStock },
+              product.sellerId,
+            );
+            console.log({ updateResult });
+          }
         }
-        const deleteResult = await orderModel.deleteByUsrId(payment.userId);
-        console.log({ deleteResult });
       }
+      const deleteResult = await orderModel.deleteByUsrId(
+        payment.userId || payment.usrId,
+      );
+      console.log({ deleteResult });
 
       res.status(200).json({
         message: "Success",
@@ -122,21 +124,24 @@ async function confirmPaymentCash(req, res) {
     const payment = await paymentModel.confirmOrderCash(req.body);
 
     if (status === "done" && payment) {
-      const order = await orderModel.findByUsrId(payment.userId);
-      console.log({ order });
-      if (order.prdQtyList) {
-        for (const prdQty of order.prdQtyList) {
-          console.log({ payment }, prdQty.prdId, {
-            stock: prdQty.productDetails.stock - prdQty.quantity,
-          });
-          const updateResult = await productModel.updateById(prdQty.prdId, {
-            stock: prdQty.productDetails.stock - prdQty.quantity,
-          });
-          console.log({ updateResult });
+      if (payment.productList) {
+        for (const prdQty of payment.productList) {
+          const product = await productModel.findById(prdQty.prdId);
+          if (product && product.stock !== undefined) {
+            const newStock = product.stock - prdQty.quantity;
+            const updateResult = await productModel.updateById(
+              prdQty.prdId,
+              { stock: newStock },
+              product.sellerId,
+            );
+            console.log({ updateResult });
+          }
         }
-        const deleteResult = await orderModel.deleteByUsrId(payment.userId);
-        console.log({ deleteResult });
       }
+      const deleteResult = await orderModel.deleteByUsrId(
+        payment.userId || payment.usrId,
+      );
+      console.log({ deleteResult });
 
       res.status(200).json({
         message: "Success",
@@ -155,8 +160,54 @@ async function confirmPaymentCash(req, res) {
   }
 }
 
+async function getPaymentsByUserId(req, res) {
+  try {
+    const userId = req.auth.user._id;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User Id is required",
+      });
+    }
+
+    const db = getDb();
+    const paymentModel = createPaymentModel(db);
+    const payments = await paymentModel.findByUserId(userId);
+
+    res.status(200).json({
+      message: "Success",
+      payments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error retrieving payments",
+      error: error.message,
+    });
+  }
+}
+
+async function getAllPayments(req, res) {
+  try {
+    const db = getDb();
+    const paymentModel = createPaymentModel(db);
+    const payments = await paymentModel.findAll();
+
+    res.status(200).json({
+      message: "Success",
+      payments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error retrieving payments",
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   createPayment,
   confirmPayment,
   confirmPaymentCash,
+  getPaymentsByUserId,
+  getAllPayments,
 };

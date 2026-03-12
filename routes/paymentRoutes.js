@@ -5,6 +5,8 @@ const {
   createPayment,
   confirmPayment,
   confirmPaymentCash,
+  getPaymentsByUserId,
+  getAllPayments,
 } = require("../controllers/PaymentController");
 
 const { requireAuth, requireAdmin } = require("../middleware/auth");
@@ -17,5 +19,7 @@ router.post(
   requireAdmin,
   confirmPaymentCash,
 );
+router.get("/user", requireAuth, getPaymentsByUserId);
+router.get("/", requireAuth, requireAdmin, getAllPayments);
 
 module.exports = router;

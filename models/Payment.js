@@ -72,7 +72,7 @@ function createPaymentModel(db) {
       });
 
       const payment = {
-        userId: userId,
+        usrId: userId,
         paymentMethod,
         paymentStatus: "pending",
         productList: prdQtyList,
@@ -168,11 +168,68 @@ function createPaymentModel(db) {
     return payment;
   }
 
+  const lookupStages = [
+    { $unwind: { path: "$productList", preserveNullAndEmptyArrays: true } },
+    {
+      $addFields: {
+        "productList.prdIdObj": { $toObjectId: "$productList.prdId" },
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productList.prdIdObj",
+        foreignField: "_id",
+        as: "productList.productDetails",
+      },
+    },
+    {
+      $addFields: {
+        "productList.productDetails": {
+          $arrayElemAt: ["$productList.productDetails", 0],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        doc: { $first: "$$ROOT" },
+        productList: { $push: "$productList" },
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          $mergeObjects: ["$doc", { productList: "$productList" }],
+        },
+      },
+    },
+    { $sort: { createdAt: -1 } },
+  ];
+
+  async function findByUserId(userId) {
+    if (!userId) {
+      throw new Error("User Id is required");
+    }
+    return collection
+      .aggregate([
+        { $match: { $or: [{ userId }, { usrId: userId }] } },
+        ...lookupStages,
+      ])
+      .toArray();
+  }
+
+  async function findAll() {
+    return collection.aggregate([{ $match: {} }, ...lookupStages]).toArray();
+  }
+
   return {
     confirmOrderPaypal,
     initPaymentPaypal,
     initPaymentCash,
     confirmOrderCash,
+    findByUserId,
+    findAll,
   };
 }
 module.exports = createPaymentModel;
