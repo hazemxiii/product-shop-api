@@ -1,4 +1,5 @@
 const { ObjectId } = require("mongodb");
+const createReviewModel = require("./Review");
 
 function createProductModel(db) {
   const collection = db.collection("products");
@@ -53,6 +54,7 @@ function createProductModel(db) {
       description,
       image,
       category,
+      rating = 0,
       stock = 0,
     } = productData;
     const newProduct = {
@@ -61,6 +63,7 @@ function createProductModel(db) {
       description,
       image,
       category,
+      rating,
       stock,
       sellerId,
       createdAt: new Date(),
@@ -112,6 +115,7 @@ function createProductModel(db) {
       "price",
       "description",
       "image",
+      "rating",
       "category",
       "stock",
     ];
@@ -141,6 +145,28 @@ function createProductModel(db) {
       .toArray();
   }
 
+  async function updateRating(id, rating, oldRating) {
+    const reviewModel = createReviewModel(db);
+    const product = await findById(id);
+    if (!product) {
+      return null;
+    }
+    const reviews = await reviewModel.findByProductId(id);
+    console.log(reviews);
+    let newRating;
+    if (oldRating) {
+      newRating =
+        (product.rating * reviews.length - oldRating + rating) / reviews.length;
+    } else {
+      newRating =
+        (product.rating * reviews.length + rating) / (reviews.length + 1);
+    }
+    return collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { rating: newRating } },
+    );
+  }
+
   return {
     create,
     findById,
@@ -148,6 +174,7 @@ function createProductModel(db) {
     updateById,
     deleteById,
     findBySellerId,
+    updateRating,
   };
 }
 
