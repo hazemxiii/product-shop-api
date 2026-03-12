@@ -8,6 +8,7 @@ const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -64,6 +65,7 @@ app.use("/users", userRoutes);
 app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/orders", orderRoutes);
+app.use("/payments", paymentRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

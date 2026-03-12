@@ -71,6 +71,21 @@ function createOrderModel(db) {
       { $set: { prdQtyList, updatedAt: new Date() } },
     );
   }
-  return { create, findByUsrId, updateByUsrId, findByUsrIdJoined };
+
+  async function deleteByUsrId(userId) {
+    // console.log({ orderData });
+    // const { usrId, prdQtyList } = orderData;
+    if (!userId) {
+      throw new Error("User Id is required");
+    }
+    return collection.deleteOne({ usrId: userId });
+  }
+  return {
+    create,
+    findByUsrId,
+    updateByUsrId,
+    findByUsrIdJoined,
+    deleteByUsrId,
+  };
 }
 module.exports = createOrderModel;
