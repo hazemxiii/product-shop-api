@@ -32,9 +32,9 @@ async function requireAuth(req, res, next) {
     const emailVerified =
       decoded.email_verified ?? decoded.emailVerified ?? false;
 
-    if (isPasswordProvider && !emailVerified) {
-      return res.status(403).json({ message: "Email not verified" });
-    }
+    // if (isPasswordProvider && !emailVerified) {
+    //   return res.status(403).json({ message: "Email not verified" });
+    // }
 
     req.auth = { decoded, user };
     next();
